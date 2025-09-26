@@ -29,15 +29,55 @@ def load_model_and_scaler():
         scaler = joblib.load("scaler.pkl")
         return model, scaler
     except Exception as e:
-        st.error(f"Error loading model: {e}")
         return None, None
 
-# Load model and scaler
+# Try to load model and scaler
 model, scaler = load_model_and_scaler()
 
+# If files not found, provide upload option
 if model is None or scaler is None:
-    st.error("Model files not found. Make sure my_model.keras and scaler.pkl are in the same folder")
-    st.stop()
+    st.warning("⚠️ Model files not found. Please upload your model files:")
+    
+    col_upload1, col_upload2 = st.columns(2)
+    
+    with col_upload1:
+        st.subheader("Upload Model File")
+        model_file = st.file_uploader(
+            "Upload my_model.keras file",
+            type=['keras'],
+            help="Upload your trained Keras model file"
+        )
+    
+    with col_upload2:
+        st.subheader("Upload Scaler File")
+        scaler_file = st.file_uploader(
+            "Upload scaler.pkl file", 
+            type=['pkl'],
+            help="Upload your trained StandardScaler pickle file"
+        )
+    
+    if model_file is not None and scaler_file is not None:
+        try:
+            # Save uploaded files temporarily
+            with open("my_model.keras", "wb") as f:
+                f.write(model_file.getbuffer())
+            
+            with open("scaler.pkl", "wb") as f:
+                f.write(scaler_file.getbuffer())
+            
+            # Load the uploaded files
+            model = keras.models.load_model("my_model.keras")
+            scaler = joblib.load("scaler.pkl")
+            
+            st.success("✅ Model and scaler loaded successfully!")
+            st.rerun()
+            
+        except Exception as e:
+            st.error(f"Error loading uploaded files: {e}")
+            st.stop()
+    else:
+        st.info("👆 Please upload both model and scaler files to continue")
+        st.stop()
 
 # Create input columns
 st.sidebar.header("Input Settings")
@@ -47,200 +87,211 @@ st.sidebar.info("Enter the following values to get power generation prediction")
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("📊 Input Data")
+    st.subheader("📊 Weather Data")
     
-    # Basic variables
-    solar_irradiance = st.number_input(
-        "Solar Irradiance (W/m²)", 
-        min_value=0.0, 
-        max_value=1500.0, 
-        value=800.0,
-        step=10.0
-    )
-    
-    temperature = st.number_input(
-        "Temperature (°C)", 
-        min_value=-20.0, 
+    # Temperature and humidity
+    temperature_2_m_above_gnd = st.number_input(
+        "Temperature 2m Above Ground (°C)", 
+        min_value=-40.0, 
         max_value=60.0, 
         value=25.0,
         step=0.1
     )
     
-    humidity = st.number_input(
-        "Humidity (%)", 
+    relative_humidity_2_m_above_gnd = st.number_input(
+        "Relative Humidity 2m Above Ground (%)", 
         min_value=0.0, 
         max_value=100.0, 
         value=50.0,
         step=1.0
     )
     
-    wind_speed = st.number_input(
-        "Wind Speed (m/s)", 
-        min_value=0.0, 
-        max_value=30.0, 
-        value=5.0,
+    # Pressure and precipitation
+    mean_sea_level_pressure_MSL = st.number_input(
+        "Mean Sea Level Pressure (hPa)", 
+        min_value=900.0, 
+        max_value=1100.0, 
+        value=1013.25,
         step=0.1
     )
     
-    panel_area = st.number_input(
-        "Panel Area (m²)", 
-        min_value=1.0, 
-        max_value=1000.0, 
-        value=50.0,
-        step=1.0
+    total_precipitation_sfc = st.number_input(
+        "Total Precipitation Surface (mm)", 
+        min_value=0.0, 
+        max_value=200.0, 
+        value=0.0,
+        step=0.1
     )
     
-    # Additional variables
-    st.subheader("Additional Variables")
-    
-    pressure = st.number_input(
-        "Atmospheric Pressure (hPa)", 
-        min_value=900.0, 
-        max_value=1100.0, 
-        value=1013.0,
-        step=1.0
+    snowfall_amount_sfc = st.number_input(
+        "Snowfall Amount Surface (mm)", 
+        min_value=0.0, 
+        max_value=500.0, 
+        value=0.0,
+        step=0.1
     )
     
-    cloud_cover = st.number_input(
-        "Cloud Cover (%)", 
+    # Cloud coverage
+    st.subheader("☁️ Cloud Coverage")
+    
+    total_cloud_cover_sfc = st.number_input(
+        "Total Cloud Cover Surface (%)", 
         min_value=0.0, 
         max_value=100.0, 
         value=20.0,
         step=1.0
     )
     
-    visibility = st.number_input(
-        "Visibility (km)", 
-        min_value=0.1, 
-        max_value=50.0, 
-        value=10.0,
-        step=0.1
-    )
-    
-    dew_point = st.number_input(
-        "Dew Point (°C)", 
-        min_value=-30.0, 
-        max_value=30.0, 
-        value=15.0,
-        step=0.1
-    )
-    
-    uv_index = st.number_input(
-        "UV Index", 
+    high_cloud_cover_high_cld_lay = st.number_input(
+        "High Cloud Cover (%)", 
         min_value=0.0, 
-        max_value=15.0, 
-        value=6.0,
-        step=0.1
-    )
-    
-    wind_direction = st.number_input(
-        "Wind Direction (degrees)", 
-        min_value=0.0, 
-        max_value=360.0, 
-        value=180.0,
+        max_value=100.0, 
+        value=5.0,
         step=1.0
     )
     
-    panel_temperature = st.number_input(
-        "Panel Temperature (°C)", 
-        min_value=-20.0, 
-        max_value=80.0, 
-        value=35.0,
-        step=0.1
-    )
-    
-    panel_efficiency = st.number_input(
-        "Panel Efficiency (%)", 
-        min_value=10.0, 
-        max_value=25.0, 
-        value=18.0,
-        step=0.1
-    )
-    
-    inverter_efficiency = st.number_input(
-        "Inverter Efficiency (%)", 
-        min_value=80.0, 
-        max_value=99.0, 
-        value=95.0,
-        step=0.1
-    )
-    
-    dust_factor = st.number_input(
-        "Dust Factor (%)", 
+    medium_cloud_cover_mid_cld_lay = st.number_input(
+        "Medium Cloud Cover (%)", 
         min_value=0.0, 
-        max_value=30.0, 
+        max_value=100.0, 
+        value=10.0,
+        step=1.0
+    )
+    
+    low_cloud_cover_low_cld_lay = st.number_input(
+        "Low Cloud Cover (%)", 
+        min_value=0.0, 
+        max_value=100.0, 
+        value=15.0,
+        step=1.0
+    )
+    
+    # Solar radiation
+    st.subheader("☀️ Solar Radiation")
+    
+    shortwave_radiation_backwards_sfc = st.number_input(
+        "Shortwave Radiation Backwards Surface (W/m²)", 
+        min_value=0.0, 
+        max_value=1500.0, 
+        value=800.0,
+        step=10.0
+    )
+
+with col2:
+    st.subheader("🌬️ Wind Data")
+    
+    # Wind at 10m
+    wind_speed_10_m_above_gnd = st.number_input(
+        "Wind Speed 10m Above Ground (m/s)", 
+        min_value=0.0, 
+        max_value=50.0, 
         value=5.0,
         step=0.1
     )
     
-    # Time variables
-    hour_of_day = st.number_input(
-        "Hour of Day (0-23)", 
-        min_value=0, 
-        max_value=23, 
-        value=12,
-        step=1
-    )
-    
-    day_of_year = st.number_input(
-        "Day of Year (1-365)", 
-        min_value=1, 
-        max_value=365, 
-        value=180,
-        step=1
-    )
-    
-    sun_elevation = st.number_input(
-        "Sun Elevation Angle (degrees)", 
-        min_value=0.0, 
-        max_value=90.0, 
-        value=45.0,
-        step=1.0
-    )
-    
-    sun_azimuth = st.number_input(
-        "Sun Azimuth Angle (degrees)", 
+    wind_direction_10_m_above_gnd = st.number_input(
+        "Wind Direction 10m Above Ground (degrees)", 
         min_value=0.0, 
         max_value=360.0, 
         value=180.0,
         step=1.0
     )
     
-    ambient_light = st.number_input(
-        "Ambient Light (lux)", 
+    # Wind at 80m
+    wind_speed_80_m_above_gnd = st.number_input(
+        "Wind Speed 80m Above Ground (m/s)", 
         min_value=0.0, 
-        max_value=120000.0, 
-        value=50000.0,
-        step=1000.0
+        max_value=70.0, 
+        value=8.0,
+        step=0.1
     )
-
-with col2:
+    
+    wind_direction_80_m_above_gnd = st.number_input(
+        "Wind Direction 80m Above Ground (degrees)", 
+        min_value=0.0, 
+        max_value=360.0, 
+        value=180.0,
+        step=1.0
+    )
+    
+    # Wind at 900mb
+    wind_speed_900_mb = st.number_input(
+        "Wind Speed 900mb (m/s)", 
+        min_value=0.0, 
+        max_value=100.0, 
+        value=10.0,
+        step=0.1
+    )
+    
+    wind_direction_900_mb = st.number_input(
+        "Wind Direction 900mb (degrees)", 
+        min_value=0.0, 
+        max_value=360.0, 
+        value=180.0,
+        step=1.0
+    )
+    
+    wind_gust_10_m_above_gnd = st.number_input(
+        "Wind Gust 10m Above Ground (m/s)", 
+        min_value=0.0, 
+        max_value=80.0, 
+        value=7.0,
+        step=0.1
+    )
+    
+    st.subheader("🌞 Solar Angles")
+    
+    # Solar angles
+    angle_of_incidence = st.number_input(
+        "Angle of Incidence (degrees)", 
+        min_value=0.0, 
+        max_value=90.0, 
+        value=30.0,
+        step=0.1
+    )
+    
+    zenith = st.number_input(
+        "Zenith Angle (degrees)", 
+        min_value=0.0, 
+        max_value=180.0, 
+        value=45.0,
+        step=0.1
+    )
+    
+    azimuth = st.number_input(
+        "Azimuth Angle (degrees)", 
+        min_value=0.0, 
+        max_value=360.0, 
+        value=180.0,
+        step=0.1
+    )
+    
     st.subheader("🔮 Results")
     
     if st.button("Predict Power Generation", type="primary"):
         try:
-            # Create input array with all 20 features
+            # Create input array with exact feature names from your model
             input_data = np.array([[
-                solar_irradiance,
-                temperature,
-                humidity,
-                wind_speed,
-                panel_area,
-                pressure,
-                cloud_cover,
-                visibility,
-                dew_point,
-                uv_index,
-                wind_direction,
-                panel_temperature,
-                panel_efficiency,
-                inverter_efficiency,
-                dust_factor,
-                hour_of_day,
-                day_of_year,
-                sun_elevation,
-                sun_azimuth,
-                ambient_light
+                temperature_2_m_above_gnd,
+                relative_humidity_2_m_above_gnd,
+                mean_sea_level_pressure_MSL,
+                total_precipitation_sfc,
+                snowfall_amount_sfc,
+                total_cloud_cover_sfc,
+                high_cloud_cover_high_cld_lay,
+                medium_cloud_cover_mid_cld_lay,
+                low_cloud_cover_low_cld_lay,
+                shortwave_radiation_backwards_sfc,
+                wind_speed_10_m_above_gnd,
+                wind_direction_10_m_above_gnd,
+                wind_speed_80_m_above_gnd,
+                wind_direction_80_m_above_gnd,
+                wind_speed_900_mb,
+                wind_direction_900_mb,
+                wind_gust_10_m_above_gnd,
+                angle_of_incidence,
+                zenith,
+                azimuth
             ]])
             
             # Apply scaling
@@ -279,6 +330,7 @@ with col2:
             
         except Exception as e:
             st.error(f"Prediction error: {e}")
+            st.error("Please check if the input features match your trained model")
 
 # CSV file upload section
 st.markdown("---")
@@ -295,37 +347,55 @@ if uploaded_file is not None:
         st.write("Data sample:")
         st.dataframe(df_input.head())
         
+        st.write("Expected column order:")
+        expected_columns = [
+            "temperature_2_m_above_gnd", "relative_humidity_2_m_above_gnd", 
+            "mean_sea_level_pressure_MSL", "total_precipitation_sfc", 
+            "snowfall_amount_sfc", "total_cloud_cover_sfc", 
+            "high_cloud_cover_high_cld_lay", "medium_cloud_cover_mid_cld_lay", 
+            "low_cloud_cover_low_cld_lay", "shortwave_radiation_backwards_sfc", 
+            "wind_speed_10_m_above_gnd", "wind_direction_10_m_above_gnd", 
+            "wind_speed_80_m_above_gnd", "wind_direction_80_m_above_gnd", 
+            "wind_speed_900_mb", "wind_direction_900_mb", 
+            "wind_gust_10_m_above_gnd", "angle_of_incidence", "zenith", "azimuth"
+        ]
+        st.write(expected_columns)
+        
         if st.button("Run Prediction on File"):
-            # Apply scaling
-            X_scaled = scaler.transform(df_input)
-            
-            # Make predictions
-            predictions = model.predict(X_scaled)
-            
-            # Add predictions to data
-            df_results = df_input.copy()
-            df_results['predicted_power_kw'] = predictions
-            
-            st.success("Prediction completed successfully!")
-            st.dataframe(df_results)
-            
-            # Create chart for results
-            fig = px.line(
-                df_results, 
-                y='predicted_power_kw',
-                title="Predictions Over Time",
-                labels={'predicted_power_kw': 'Predicted Power (kW)'}
-            )
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Download option
-            csv = df_results.to_csv(index=False)
-            st.download_button(
-                label="Download Results as CSV",
-                data=csv,
-                file_name='predictions.csv',
-                mime='text/csv'
-            )
+            # Check if we have the right number of columns
+            if df_input.shape[1] != 20:
+                st.error(f"Expected 20 columns but got {df_input.shape[1]}. Please check your CSV file.")
+            else:
+                # Apply scaling
+                X_scaled = scaler.transform(df_input)
+                
+                # Make predictions
+                predictions = model.predict(X_scaled)
+                
+                # Add predictions to data
+                df_results = df_input.copy()
+                df_results['predicted_power_kw'] = predictions
+                
+                st.success("Prediction completed successfully!")
+                st.dataframe(df_results)
+                
+                # Create chart for results
+                fig = px.line(
+                    df_results, 
+                    y='predicted_power_kw',
+                    title="Predictions Over Time",
+                    labels={'predicted_power_kw': 'Predicted Power (kW)'}
+                )
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Download option
+                csv = df_results.to_csv(index=False)
+                st.download_button(
+                    label="Download Results as CSV",
+                    data=csv,
+                    file_name='predictions.csv',
+                    mime='text/csv'
+                )
             
     except Exception as e:
         st.error(f"File processing error: {e}")
