@@ -25,13 +25,33 @@ st.markdown("---")
 # تحميل النموذج والمقياس المحفوظين
 @st.cache_resource
 def load_model_and_scaler():
-    try:
-        model = keras.models.load_model("my_model.keras")
-        scaler = joblib.load("scaler.pkl")
-        return model, scaler
-    except FileNotFoundError:
-        st.error("❌ لم يتم العثور على ملفات النموذج. تأكد من وجود my_model.keras و scaler.pkl في نفس المجلد.")
-        return None, None
+    import os
+    
+    # البحث عن الملفات في المسارات المختلفة
+    possible_paths = [
+        ("my_model.keras", "scaler.pkl"),  # المسار الحالي
+        ("./my_model.keras", "./scaler.pkl"),  # المسار الحالي صراحة
+        ("../my_model.keras", "../scaler.pkl"),  # مجلد أعلى
+        ("../../my_model.keras", "../../scaler.pkl"),  # مجلدين أعلى
+        ("dl_projects/main/DL_Reg_app/my_model.keras", "dl_projects/main/DL_Reg_app/scaler.pkl"),  # المسار الكامل
+        ("./dl_projects/main/DL_Reg_app/my_model.keras", "./dl_projects/main/DL_Reg_app/scaler.pkl"),
+    ]
+    
+    for model_path, scaler_path in possible_paths:
+        try:
+            if os.path.exists(model_path) and os.path.exists(scaler_path):
+                model = keras.models.load_model(model_path)
+                scaler = joblib.load(scaler_path)
+                st.success(f"✅ تم تحميل النموذج من: {model_path}")
+                return model, scaler
+        except Exception as e:
+            continue
+    
+    st.error("❌ لم يتم العثور على ملفات النموذج. تأكد من وجود my_model.keras و scaler.pkl في المسار الصحيح.")
+    st.info("المسارات المتوقعة:")
+    for model_path, scaler_path in possible_paths:
+        st.write(f"- {model_path}")
+    return None, None
 
 model, scaler = load_model_and_scaler()
 
