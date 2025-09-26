@@ -31,53 +31,13 @@ def load_model_and_scaler():
     except Exception as e:
         return None, None
 
-# Try to load model and scaler
+# Load model and scaler
 model, scaler = load_model_and_scaler()
 
-# If files not found, provide upload option
 if model is None or scaler is None:
-    st.warning("⚠️ Model files not found. Please upload your model files:")
-    
-    col_upload1, col_upload2 = st.columns(2)
-    
-    with col_upload1:
-        st.subheader("Upload Model File")
-        model_file = st.file_uploader(
-            "Upload my_model.keras file",
-            type=['keras'],
-            help="Upload your trained Keras model file"
-        )
-    
-    with col_upload2:
-        st.subheader("Upload Scaler File")
-        scaler_file = st.file_uploader(
-            "Upload scaler.pkl file", 
-            type=['pkl'],
-            help="Upload your trained StandardScaler pickle file"
-        )
-    
-    if model_file is not None and scaler_file is not None:
-        try:
-            # Save uploaded files temporarily
-            with open("my_model.keras", "wb") as f:
-                f.write(model_file.getbuffer())
-            
-            with open("scaler.pkl", "wb") as f:
-                f.write(scaler_file.getbuffer())
-            
-            # Load the uploaded files
-            model = keras.models.load_model("my_model.keras")
-            scaler = joblib.load("scaler.pkl")
-            
-            st.success("✅ Model and scaler loaded successfully!")
-            st.rerun()
-            
-        except Exception as e:
-            st.error(f"Error loading uploaded files: {e}")
-            st.stop()
-    else:
-        st.info("👆 Please upload both model and scaler files to continue")
-        st.stop()
+    st.error("⚠️ Model files not found. Please make sure 'my_model.keras' and 'scaler.pkl' are in the same directory as this script.")
+    st.info("📁 Expected file structure:\n- app.py\n- my_model.keras\n- scaler.pkl")
+    st.stop()
 
 # Create input columns
 st.sidebar.header("Input Settings")
