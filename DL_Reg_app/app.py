@@ -1,8 +1,13 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import tensorflow as tf
-from tensorflow import keras
+try:
+    import tensorflow as tf
+    from tensorflow import keras
+    TF_AVAILABLE = True
+except ImportError:
+    st.error("TensorFlow is not available. Please install TensorFlow.")
+    TF_AVAILABLE = False
 import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -25,9 +30,40 @@ st.markdown("---")
 @st.cache_resource
 def load_model_and_scaler():
     try:
-        model = keras.models.load_model("my_model.keras")
-        scaler = joblib.load("scaler.pkl")
+        # البحث عن الملفات في مسارات مختلفة
+        model_paths = [
+            "my_model.keras",
+            "DL_Reg_app/my_model.keras",
+            "./DL_Reg_app/my_model.keras"
+        ]
+        
+        scaler_paths = [
+            "scaler.pkl",
+            "DL_Reg_app/scaler.pkl", 
+            "./DL_Reg_app/scaler.pkl"
+        ]
+        
+        model = None
+        scaler = None
+        
+        # جرب تحميل النموذج من المسارات المختلفة
+        for model_path in model_paths:
+            try:
+                model = keras.models.load_model(model_path)
+                break
+            except:
+                continue
+                
+        # جرب تحميل الـ scaler من المسارات المختلفة
+        for scaler_path in scaler_paths:
+            try:
+                scaler = joblib.load(scaler_path)
+                break
+            except:
+                continue
+                
         return model, scaler
+        
     except Exception as e:
         st.error(f"خطأ في تحميل النموذج: {e}")
         return None, None
@@ -37,6 +73,154 @@ model, scaler = load_model_and_scaler()
 
 if model is None or scaler is None:
     st.error("لم يتم العثور على ملفات النموذج. تأكد من وجود my_model.keras و scaler.pkl في نفس المجلد")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # خيار إنشاء نموذج تجريبي
+        if st.button("🚀 إنشاء نموذج تجريبي", type="primary"):
+            with st.spinner("جاري إنشاء نموذج تجريبي..."):
+                try:
+                    # إنشاء نموذج بسيط للاختبار
+                    demo_model = tf.keras.Sequential([
+                        tf.keras.layers.Input(shape=(5,)),
+                        tf.keras.layers.Dense(128, activation='relu'),
+                        tf.keras.layers.Dense(64, activation='relu'),
+                        tf.keras.layers.Dense(1)
+                    ])
+                    demo_model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+                    
+                    # إنشاء بيانات وهمية واقعية أكثر
+                    np.random.seed(42)
+                    n_samples = 1000
+                    
+                    # متغيرات واقعية للطاقة الشمسية
+                    solar_irradiance = np.random.uniform(100, 1200, n_samples)
+                    temperature = np.random.uniform(15, 45, n_samples)
+                    humidity = np.random.uniform(20, 90, n_samples)
+                    wind_speed = np.random.uniform(0, 15, n_samples)
+                    panel_area = np.random.uniform(10, 100, n_samples)
+                    
+                    X_dummy = np.column_stack([solar_irradiance, temperature, humidity, wind_speed, panel_area])
+                    
+                    # معادلة واقعية للطاقة المولدة
+                    efficiency = 0.2  # كفاءة 20%
+                    temp_coefficient = -0.004  # معامل درجة الحرارة
+                    
+                    y_dummy = (
+                        solar_irradiance * panel_area * efficiency * 
+                        (1 + temp_coefficient * (temperature - 25)) * 
+                        (1 - humidity * 0.001) * 
+                        (1 + wind_speed * 0.01)
+                    ) / 1000  # تحويل إلى kW
+                    
+                    # إضافة بعض الضوضاء
+                    y_dummy += np.random.normal(0, y_dummy.std() * 0.1, n_samples)
+                    y_dummy = np.maximum(y_dummy, 0)  # التأكد من عدم وجود قيم سالبة
+                    
+                    demo_model.fit(X_dummy, y_dummy, epochs=50, verbose=0, validation_split=0.2)
+                    demo_model.save("my_model.keras")
+                    
+                    # إنشاء scaler
+                    from sklearn.preprocessing import StandardScaler
+                    demo_scaler = StandardScaler()
+                    demo_scaler.fit(X_dummy)
+                    joblib.dump(demo_scaler, "scaler.pkl")
+                    
+                    st.success("✅ تم إنشاء النموذج التجريبي بنجاح!")
+                    st.info("يرجى إعادة تحميل الصفحة لاستخدام النموذج الجديد")
+                    
+                    # إعادة تحميل النموذج
+                    st.cache_resource.clear()
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"❌ خطأ في إنشاء النموذج التجريبي: {e}")
+    
+    with col2:
+        # خيار رفع ملف البيانات لإنشاء نموذج حقيقي
+        st.markdown("### 📊 أو ارفع بيانات التدريب")
+        uploaded_train_file = st.file_uploader(
+            "ارفع ملف CSV لبيانات التدريب", 
+            type=['csv'],
+            help="ملف يحتوي على البيانات مع عمود 'generated_power_kw'"
+        )
+        
+        if uploaded_train_file is not None:
+            if st.button("🎯 تدريب نموذج من البيانات"):
+                with st.spinner("جاري تدريب النموذج..."):
+                    try:
+                        # قراءة البيانات
+                        df_train = pd.read_csv(uploaded_train_file)
+                        
+                        if 'generated_power_kw' not in df_train.columns:
+                            st.error("الملف يجب أن يحتوي على عمود 'generated_power_kw'")
+                        else:
+                            # إعداد البيانات
+                            y = df_train['generated_power_kw']
+                            X = df_train.drop('generated_power_kw', axis=1)
+                            
+                            # تقسيم البيانات
+                            from sklearn.model_selection import train_test_split
+                            X_train, X_test, y_train, y_test = train_test_split(
+                                X, y, test_size=0.2, random_state=42
+                            )
+                            
+                            # التطبيع
+                            from sklearn.preprocessing import StandardScaler
+                            scaler = StandardScaler()
+                            X_train_scaled = scaler.fit_transform(X_train)
+                            X_test_scaled = scaler.transform(X_test)
+                            
+                            # بناء النموذج
+                            model_real = tf.keras.Sequential([
+                                tf.keras.layers.Input(shape=(X_train_scaled.shape[1],)),
+                                tf.keras.layers.Dense(128, activation='relu'),
+                                tf.keras.layers.Dense(64, activation='relu'),
+                                tf.keras.layers.Dense(1)
+                            ])
+                            
+                            model_real.compile(optimizer='adam', loss='mse', metrics=['mae'])
+                            
+                            # التدريب
+                            history = model_real.fit(
+                                X_train_scaled, y_train,
+                                validation_data=(X_test_scaled, y_test),
+                                epochs=100,
+                                verbose=0,
+                                callbacks=[
+                                    tf.keras.callbacks.EarlyStopping(
+                                        patience=10, restore_best_weights=True
+                                    )
+                                ]
+                            )
+                            
+                            # حفظ النموذج والـ scaler
+                            model_real.save("my_model.keras")
+                            joblib.dump(scaler, "scaler.pkl")
+                            
+                            # عرض النتائج
+                            train_loss = history.history['loss'][-1]
+                            val_loss = history.history['val_loss'][-1]
+                            
+                            st.success("✅ تم تدريب النموذج بنجاح!")
+                            st.write(f"**خسارة التدريب:** {train_loss:.4f}")
+                            st.write(f"**خسارة التحقق:** {val_loss:.4f}")
+                            
+                            st.cache_resource.clear()
+                            st.rerun()
+                            
+                    except Exception as e:
+                        st.error(f"❌ خطأ في تدريب النموذج: {e}")
+    
+    st.markdown("---")
+    st.info("""
+    💡 **إرشادات:**
+    - استخدم النموذج التجريبي للاختبار السريع
+    - لنموذج حقيقي، ارفع ملف CSV يحتوي على بياناتك مع عمود 'generated_power_kw'
+    - تأكد من أن البيانات تحتوي على المتغيرات: الإشعاع الشمسي، درجة الحرارة، الرطوبة، سرعة الرياح، مساحة الألواح
+    """)
+    
     st.stop()
 
 # إنشاء أعمدة للإدخال
