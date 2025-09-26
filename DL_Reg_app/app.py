@@ -29,14 +29,14 @@ def load_model_and_scaler():
         scaler = joblib.load("scaler.pkl")
         return model, scaler
     except Exception as e:
+        st.error(f"Error loading model: {e}")
         return None, None
 
 # Load model and scaler
 model, scaler = load_model_and_scaler()
 
 if model is None or scaler is None:
-    st.error("⚠️ Model files not found. Please make sure 'my_model.keras' and 'scaler.pkl' are in the same directory as this script.")
-    st.info("📁 Expected file structure:\n- app.py\n- my_model.keras\n- scaler.pkl")
+    st.error("Model files not found. Make sure my_model.keras and scaler.pkl are in the same folder")
     st.stop()
 
 # Create input columns
