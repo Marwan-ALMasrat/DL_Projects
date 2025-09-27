@@ -27,53 +27,25 @@ st.markdown("---")
 def load_model_and_scaler():
     import os
     
-    # عرض المسار الحالي للتشخيص
-    current_dir = os.getcwd()
-    st.info(f"📁 المسار الحالي: {current_dir}")
-    
-    # عرض الملفات الموجودة في المسار الحالي
-    files_in_current_dir = os.listdir(current_dir)
-    st.info(f"📄 الملفات في المسار الحالي: {files_in_current_dir}")
-    
     # البحث عن الملفات في المسارات المختلفة
     possible_paths = [
+        ("DL_Reg_app/my_model.keras", "DL_Reg_app/scaler.pkl"),
         ("my_model.keras", "scaler.pkl"),
         ("./my_model.keras", "./scaler.pkl"),
         ("../my_model.keras", "../scaler.pkl"),
-        ("DL_Reg_app/my_model.keras", "DL_Reg_app/scaler.pkl"),
-        ("./DL_Reg_app/my_model.keras", "./DL_Reg_app/scaler.pkl"),
-        ("dl_projects/DL_Reg_app/my_model.keras", "dl_projects/DL_Reg_app/scaler.pkl"),
         ("/mount/src/dl_projects/DL_Reg_app/my_model.keras", "/mount/src/dl_projects/DL_Reg_app/scaler.pkl"),
     ]
     
     for model_path, scaler_path in possible_paths:
-        st.write(f"🔍 البحث في: {model_path}")
         try:
             if os.path.exists(model_path) and os.path.exists(scaler_path):
                 model = keras.models.load_model(model_path)
                 scaler = joblib.load(scaler_path)
-                st.success(f"✅ تم تحميل النموذج من: {model_path}")
                 return model, scaler
-            else:
-                if not os.path.exists(model_path):
-                    st.write(f"❌ {model_path} غير موجود")
-                if not os.path.exists(scaler_path):
-                    st.write(f"❌ {scaler_path} غير موجود")
         except Exception as e:
-            st.write(f"⚠️ خطأ في تحميل {model_path}: {str(e)}")
             continue
     
-    # البحث العام في النظام
-    st.write("🔍 البحث العام عن الملفات...")
-    for root, dirs, files in os.walk("/mount/src" if os.path.exists("/mount/src") else "."):
-        for file in files:
-            if file in ["my_model.keras", "scaler.pkl"]:
-                full_path = os.path.join(root, file)
-                st.write(f"📍 وُجد {file} في: {full_path}")
-        if len(list(os.walk("/mount/src" if os.path.exists("/mount/src") else "."))) > 50:  # تجنب البحث المفرط
-            break
-    
-    st.error("❌ لم يتم العثور على ملفات النموذج.")
+    st.error("❌ لم يتم العثور على ملفات النموذج. تأكد من وجود my_model.keras و scaler.pkl في المسار الصحيح.")
     return None, None
 
 model, scaler = load_model_and_scaler()
