@@ -13,6 +13,55 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# CSS للتصميم
+st.markdown("""
+<style>
+.developer-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    margin: 20px 0;
+    color: white;
+}
+
+.developer-name {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #ffffff;
+}
+
+.developer-title {
+    font-size: 18px;
+    margin-bottom: 12px;
+    color: #f0f8ff;
+    opacity: 0.9;
+}
+
+.tech-icons {
+    font-size: 16px;
+    margin-bottom: 10px;
+    color: #ffffff;
+}
+
+.linkedin-link {
+    color: #00d4aa !important;
+    text-decoration: none;
+    margin-left: 10px;
+    transition: all 0.3s ease;
+}
+
+.linkedin-link:hover {
+    color: #ffffff !important;
+    text-shadow: 0 0 10px #00d4aa;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # تحميل النموذج والمقياس المحفوظين
 @st.cache_resource
 def load_model_and_scaler():
@@ -154,7 +203,7 @@ if model is not None and scaler is not None:
     col1, col2 = st.columns(2)
     
     with col1:
-        st.info(f"**فرق الزاوية:** {delta_angle:.2f}° \n\n(الفرق بين زاوية السقوط وزاوية الذروة)")
+        st.info(f"**فرق الزاوية:** {delta_angle:.2f}° \n\n(الفرق المطلق بين زاوية السقوط وزاوية الذروة - يحدد مدى انحراف اللوح عن الوضع المثالي)")
     
     with col2:
         st.info(f"**مؤشر الحرارة-الرطوبة:** {temp_humidity_index:.2f} \n\n(درجة الحرارة × الرطوبة النسبية)")
@@ -301,6 +350,17 @@ else:
     st.error("❌ النموذج غير متاح. تأكد من وجود ملفات النموذج في المسار الصحيح.")
     st.info("الملفات المطلوبة: my_model.keras و scaler.pkl")
 
-# الهامش السفلي
+# الهامش السفلي وكرت المطور
 st.markdown("---")
-st.markdown("**🌞 نظام التنبؤ بإنتاج الطاقة الشمسية** | مدعوم بالذكاء الاصطناعي 🤖")
+st.markdown("""
+<div class="developer-card">
+    <div class="developer-name"> By Marwan Al-Masrrat</div>
+    <div class="developer-title">💻 AI Enthusiast</div>
+    <div class="tech-icons">🐍 Python | 🤖 AI/ML
+    <a href="https://www.linkedin.com/in/marwan-al-masrat" target="_blank" class="linkedin-link">
+        🔗 LinkedIn
+    </a>
+    <p style="margin: 15px 0 0 0; font-size: 14px; color: white; opacity: 0.8;">
+    </p>
+</div>
+""", unsafe_allow_html=True)
