@@ -1,7 +1,6 @@
 import streamlit as st
 import numpy as np
 from PIL import Image
-import cv2
 from tensorflow.keras.models import load_model
 import matplotlib.pyplot as plt
 
