@@ -16,10 +16,26 @@ st.set_page_config(
 @st.cache_resource
 def load_fashion_model():
     try:
-        model = load_model("fashion_cnn_model.keras")
-        return model
-    except:
-        st.error("⚠️ Model file not found! Make sure 'fashion_cnn_model.keras' is in the same folder.")
+        # Try multiple possible paths
+        possible_paths = [
+            "fashion_cnn_model.keras",  # Same directory
+            "Fashion Classifier AI App/fashion_cnn_model.keras",  # From parent
+            "../fashion_cnn_model.keras",  # Parent directory
+            "DL_Projects/Fashion Classifier AI App/fashion_cnn_model.keras"  # Full path
+        ]
+        
+        for path in possible_paths:
+            try:
+                model = load_model(path)
+                st.success(f"✅ Model loaded successfully from: {path}")
+                return model
+            except:
+                continue
+        
+        st.error("⚠️ Model file not found! Make sure 'fashion_cnn_model.keras' is in the same folder as the app.")
+        return None
+    except Exception as e:
+        st.error(f"⚠️ Error loading model: {str(e)}")
         return None
 
 # Class names
