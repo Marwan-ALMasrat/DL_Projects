@@ -1,41 +1,9 @@
-import sys
-import subprocess
-import os
-
-# Auto-install required packages
-def install_requirements():
-    """Install packages from requirements.txt in the same directory"""
-    try:
-        # Get the directory where this script is located
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        requirements_path = os.path.join(script_dir, 'requirements.txt')
-        
-        if os.path.exists(requirements_path):
-            print(f"📦 Installing packages from {requirements_path}...")
-            subprocess.check_call([
-                sys.executable, "-m", "pip", "install", "-r", requirements_path, "--quiet"
-            ])
-            print("✅ Packages installed successfully!")
-        else:
-            # Install packages directly if requirements.txt not found
-            packages = ['streamlit', 'tensorflow', 'numpy', 'pillow', 'matplotlib']
-            print("📦 Installing required packages...")
-            for package in packages:
-                subprocess.check_call([
-                    sys.executable, "-m", "pip", "install", package, "--quiet"
-                ])
-            print("✅ All packages installed!")
-    except Exception as e:
-        print(f"⚠️ Warning: Could not install packages: {e}")
-
-# Run installation
-install_requirements()
-
 import streamlit as st
 import numpy as np
 from PIL import Image
 from tensorflow.keras.models import load_model
 import matplotlib.pyplot as plt
+import os
 
 # Page configuration
 st.set_page_config(
@@ -48,27 +16,27 @@ st.set_page_config(
 @st.cache_resource
 def load_fashion_model():
     try:
+        # Get the directory where this script is located
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        
         # Try multiple possible paths
         possible_paths = [
-            "fashion_cnn_model.keras",
-            "Fashion Classifier AI App/fashion_cnn_model.keras",
-            "../fashion_cnn_model.keras",
-            "DL_Projects/Fashion Classifier AI App/fashion_cnn_model.keras"
+            os.path.join(script_dir, "fashion_cnn_model.keras"),  # Same directory as script
+            "fashion_cnn_model.keras",  # Current working directory
+            "Fashion_Classifier_AI_App/fashion_cnn_model.keras",  # From repo root
+            "../fashion_cnn_model.keras",  # Parent directory
         ]
-        
-        # Also try relative to script location
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        possible_paths.append(os.path.join(script_dir, "fashion_cnn_model.keras"))
         
         for path in possible_paths:
             try:
-                model = load_model(path)
-                st.success(f"✅ Model loaded successfully from: {path}")
-                return model
-            except:
+                if os.path.exists(path):
+                    model = load_model(path)
+                    st.success(f"✅ Model loaded successfully from: {path}")
+                    return model
+            except Exception as e:
                 continue
         
-        st.error("⚠️ Model file not found! Make sure 'fashion_cnn_model.keras' is in the same folder as the app.")
+        st.error("⚠️ Model file not found! Make sure 'fashion_cnn_model.keras' is in the Fashion_Classifier_AI_App folder.")
         return None
     except Exception as e:
         st.error(f"⚠️ Error loading model: {str(e)}")
@@ -82,14 +50,23 @@ class_names = [
 
 # Image processing function
 def preprocess_image(image):
+    # Convert to grayscale
     img_gray = image.convert('L')
+    
+    # Resize to 28x28
     img_resized = img_gray.resize((28, 28))
+    
+    # Convert to numpy array
     img_array = np.array(img_resized)
     
+    # Invert colors if background is light
     if img_array.mean() > 127:
         img_array = 255 - img_array
     
+    # Normalize (0-1)
     img_normalized = img_array / 255.0
+    
+    # Reshape for model
     img_final = img_normalized.reshape(1, 28, 28, 1)
     
     return img_final, img_array
@@ -237,14 +214,17 @@ if model is not None:
             st.markdown("<div class='result-box'>", unsafe_allow_html=True)
             st.subheader("🔍 Result")
             
+            # Display processed image
             st.image(img_display, caption="Processed Image (28x28)", width=200)
             
+            # Main result
             st.markdown(f"""
                 <div style='text-align: center; padding: 1rem;'>
                     <h2 style='color: #667eea; margin: 0;'>{class_names[predicted_class]}</h2>
                 </div>
             """, unsafe_allow_html=True)
             
+            # Confidence bar
             st.markdown("### Confidence Level")
             st.markdown(f"""
                 <div class="confidence-bar" style="width: {confidence}%">
@@ -258,10 +238,12 @@ if model is not None:
         st.markdown("<div class='result-box'>", unsafe_allow_html=True)
         st.subheader("📊 All Predictions")
         
+        # Create chart
         fig, ax = plt.subplots(figsize=(12, 6))
         y_pos = np.arange(len(class_names))
         bars = ax.barh(y_pos, all_predictions * 100)
         
+        # Color the highest bar
         bars[predicted_class].set_color('#667eea')
         
         ax.set_yticks(y_pos)
@@ -270,6 +252,7 @@ if model is not None:
         ax.set_title('Probability Distribution for All Classes', fontsize=14, pad=20)
         ax.grid(axis='x', alpha=0.3)
         
+        # Add values on bars
         for i, v in enumerate(all_predictions * 100):
             ax.text(v + 1, i, f'{v:.1f}%', va='center')
         
@@ -283,7 +266,7 @@ else:
             <ol>
                 <li>Make sure to run the code in the Notebook first to create the model</li>
                 <li>Save the model using: <code>model.save("fashion_cnn_model.keras")</code></li>
-                <li>Place the <code>fashion_cnn_model.keras</code> file in the same folder as the app</li>
+                <li>Place the <code>fashion_cnn_model.keras</code> file in the Fashion_Classifier_AI_App folder</li>
                 <li>Run the app using: <code>streamlit run fashion_mnist_app.py</code></li>
             </ol>
         </div>
