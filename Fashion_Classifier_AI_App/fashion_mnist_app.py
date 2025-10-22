@@ -9,34 +9,31 @@ import os
 st.set_page_config(
     page_title="Fashion Classifier",
     page_icon="👗",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 # Cache the model in memory
 @st.cache_resource
 def load_fashion_model():
     try:
-        # Get the directory where this script is located
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        # Try multiple possible paths
         possible_paths = [
-            os.path.join(script_dir, "fashion_cnn_model.keras"),  # Same directory as script
-            "fashion_cnn_model.keras",  # Current working directory
-            "Fashion_Classifier_AI_App/fashion_cnn_model.keras",  # From repo root
-            "../fashion_cnn_model.keras",  # Parent directory
+            os.path.join(script_dir, "fashion_cnn_model.keras"),
+            "fashion_cnn_model.keras",
+            "Fashion_Classifier_AI_App/fashion_cnn_model.keras",
+            "../fashion_cnn_model.keras",
         ]
         
         for path in possible_paths:
             try:
                 if os.path.exists(path):
                     model = load_model(path)
-                    st.success(f"✅ Model loaded successfully from: {path}")
                     return model
             except Exception as e:
                 continue
         
-        st.error("⚠️ Model file not found! Make sure 'fashion_cnn_model.keras' is in the Fashion_Classifier_AI_App folder.")
+        st.error("⚠️ Model file not found!")
         return None
     except Exception as e:
         st.error(f"⚠️ Error loading model: {str(e)}")
@@ -48,25 +45,19 @@ class_names = [
     'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot'
 ]
 
+# Emojis for each class
+class_emojis = ['👕', '👖', '🧥', '👗', '🧥', '👡', '👔', '👟', '👜', '👢']
+
 # Image processing function
 def preprocess_image(image):
-    # Convert to grayscale
     img_gray = image.convert('L')
-    
-    # Resize to 28x28
     img_resized = img_gray.resize((28, 28))
-    
-    # Convert to numpy array
     img_array = np.array(img_resized)
     
-    # Invert colors if background is light
     if img_array.mean() > 127:
         img_array = 255 - img_array
     
-    # Normalize (0-1)
     img_normalized = img_array / 255.0
-    
-    # Reshape for model
     img_final = img_normalized.reshape(1, 28, 28, 1)
     
     return img_final, img_array
@@ -79,84 +70,193 @@ def predict_image(model, img_processed):
     
     return predicted_class, confidence, predictions[0]
 
-# Application interface
+# Modern, clean styling
 st.markdown("""
     <style>
+    /* Main background */
     .main {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
     }
     .stApp {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
     }
-    .title-container {
-        background: white;
-        padding: 2rem;
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        margin-bottom: 2rem;
+    
+    /* Title styling */
+    .main-title {
         text-align: center;
-    }
-    .result-box {
+        padding: 2rem 1rem;
         background: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+        margin-bottom: 2rem;
+    }
+    .main-title h1 {
+        color: #2c3e50;
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+    .main-title p {
+        color: #6c757d;
+        font-size: 1.1rem;
+        margin: 0;
+    }
+    
+    /* Card styling */
+    .card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 1.5rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+    
+    /* Result card - special styling */
+    .result-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
         padding: 2rem;
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border-radius: 20px;
+        box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+        text-align: center;
         margin: 1rem 0;
     }
-    .confidence-bar {
-        height: 30px;
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        border-radius: 15px;
-        text-align: center;
-        color: white;
-        line-height: 30px;
-        font-weight: bold;
+    .result-card h2 {
+        font-size: 3rem;
+        margin: 1rem 0;
+        font-weight: 700;
     }
-    .developer-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .result-card .emoji {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* Confidence bar */
+    .confidence-container {
+        background: rgba(255,255,255,0.2);
+        border-radius: 12px;
+        padding: 0.5rem;
+        margin-top: 1rem;
+    }
+    .confidence-bar {
+        height: 40px;
+        background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: width 0.5s ease;
+    }
+    
+    /* Upload section */
+    .upload-section {
+        background: white;
         padding: 2rem;
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        border-radius: 16px;
+        border: 2px dashed #cbd5e0;
+        text-align: center;
+        transition: border-color 0.3s ease;
+    }
+    .upload-section:hover {
+        border-color: #667eea;
+    }
+    
+    /* Streamlit elements customization */
+    .stFileUploader > div > button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        transition: transform 0.2s ease;
+    }
+    .stFileUploader > div > button:hover {
+        transform: scale(1.05);
+    }
+    
+    /* Info boxes */
+    .info-box {
+        background: #e3f2fd;
+        border-left: 4px solid #2196f3;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+    .info-box h4 {
+        color: #1976d2;
+        margin-top: 0;
+    }
+    .info-box ul {
+        margin-bottom: 0;
+        color: #424242;
+    }
+    
+    /* Developer card */
+    .developer-card {
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         text-align: center;
         color: white;
-        margin-top: 2rem;
+        margin-top: 3rem;
     }
     .developer-name {
-        font-size: 24px;
-        font-weight: bold;
-        margin-bottom: 10px;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
     }
     .developer-title {
-        font-size: 18px;
-        margin-bottom: 15px;
+        font-size: 1rem;
         opacity: 0.9;
+        margin-bottom: 1rem;
     }
-    .tech-icons {
-        font-size: 16px;
-        margin: 15px 0;
-    }
-    .linkedin-link {
+    .social-link {
         display: inline-block;
-        margin-left: 15px;
+        margin: 0.5rem;
+        padding: 0.5rem 1.5rem;
+        background: rgba(255,255,255,0.15);
+        border-radius: 8px;
         color: white;
         text-decoration: none;
-        padding: 8px 15px;
-        background: rgba(255,255,255,0.2);
-        border-radius: 8px;
         transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
     }
-    .linkedin-link:hover {
-        background: rgba(255,255,255,0.3);
+    .social-link:hover {
+        background: rgba(255,255,255,0.25);
         transform: translateY(-2px);
+    }
+    
+    /* Hide Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .main-title h1 {
+            font-size: 1.8rem;
+        }
+        .result-card h2 {
+            font-size: 2rem;
+        }
     }
     </style>
 """, unsafe_allow_html=True)
 
 # Title
 st.markdown("""
-    <div class="title-container">
-        <h1>👗 Fashion Classifier AI 🎽</h1>
-        <p style='font-size: 18px; color: #666;'>Upload an image or take a photo to classify the clothing item</p>
+    <div class="main-title">
+        <h1>👗 Fashion Classifier AI</h1>
+        <p>Identify clothing items instantly with AI</p>
     </div>
 """, unsafe_allow_html=True)
 
@@ -164,27 +264,27 @@ st.markdown("""
 model = load_fashion_model()
 
 if model is not None:
-    # Input method selection
-    col1, col2 = st.columns(2)
+    # Input section with tabs for better UX
+    tab1, tab2 = st.tabs(["📤 Upload Image", "📸 Take Photo"])
     
-    with col1:
-        st.markdown("<div class='result-box'>", unsafe_allow_html=True)
-        st.subheader("📤 Upload Image")
+    with tab1:
+        st.markdown('<div class="card">', unsafe_allow_html=True)
         uploaded_file = st.file_uploader(
-            "Choose an image...",
+            "Drag and drop or click to upload",
             type=['png', 'jpg', 'jpeg'],
-            help="Upload an image of a clothing item on a white background for best results"
+            help="Best results with clear images on white background",
+            label_visibility="collapsed"
         )
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     
-    with col2:
-        st.markdown("<div class='result-box'>", unsafe_allow_html=True)
-        st.subheader("📸 Take Photo")
+    with tab2:
+        st.markdown('<div class="card">', unsafe_allow_html=True)
         camera_image = st.camera_input(
-            "Capture photo",
-            help="Take a live photo of the clothing item"
+            "Take a photo",
+            help="Position the clothing item clearly in the frame",
+            label_visibility="collapsed"
         )
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # Process image
     image_to_process = None
@@ -195,110 +295,111 @@ if model is not None:
         image_to_process = Image.open(camera_image)
     
     if image_to_process is not None:
-        # Display results
         st.markdown("---")
-        
-        col_img, col_result = st.columns([1, 1])
-        
-        with col_img:
-            st.markdown("<div class='result-box'>", unsafe_allow_html=True)
-            st.subheader("🖼️ Original Image")
-            st.image(image_to_process, use_container_width=True)
-            st.markdown("</div>", unsafe_allow_html=True)
         
         # Process and predict
         img_processed, img_display = preprocess_image(image_to_process)
         predicted_class, confidence, all_predictions = predict_image(model, img_processed)
         
-        with col_result:
-            st.markdown("<div class='result-box'>", unsafe_allow_html=True)
-            st.subheader("🔍 Result")
-            
-            # Display processed image
-            st.image(img_display, caption="Processed Image (28x28)", width=200)
-            
-            # Main result
-            st.markdown(f"""
-                <div style='text-align: center; padding: 1rem;'>
-                    <h2 style='color: #667eea; margin: 0;'>{class_names[predicted_class]}</h2>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # Confidence bar
-            st.markdown("### Confidence Level")
-            st.markdown(f"""
-                <div class="confidence-bar" style="width: {confidence}%">
-                    {confidence:.2f}%
-                </div>
-            """, unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
+        # Results section
+        col1, col2 = st.columns([1, 1], gap="large")
         
-        # Display all probabilities
+        with col1:
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.subheader("📷 Your Image")
+            st.image(image_to_process, use_container_width=True)
+            
+            # Show processed image in small
+            st.caption("Processed for AI (28x28 grayscale)")
+            st.image(img_display, width=150)
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        with col2:
+            # Main result with gradient background
+            st.markdown(f"""
+                <div class="result-card">
+                    <div class="emoji">{class_emojis[predicted_class]}</div>
+                    <h2>{class_names[predicted_class]}</h2>
+                    <div class="confidence-container">
+                        <div class="confidence-bar" style="width: {confidence}%">
+                            {confidence:.1f}% Confidence
+                        </div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        # All predictions chart
         st.markdown("---")
-        st.markdown("<div class='result-box'>", unsafe_allow_html=True)
-        st.subheader("📊 All Predictions")
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("📊 Detailed Predictions")
         
-        # Create chart
+        # Create more colorful chart
         fig, ax = plt.subplots(figsize=(12, 6))
-        y_pos = np.arange(len(class_names))
-        bars = ax.barh(y_pos, all_predictions * 100)
+        fig.patch.set_facecolor('white')
+        ax.set_facecolor('#f8f9fa')
         
-        # Color the highest bar
-        bars[predicted_class].set_color('#667eea')
+        y_pos = np.arange(len(class_names))
+        colors = ['#667eea' if i == predicted_class else '#cbd5e0' for i in range(len(class_names))]
+        bars = ax.barh(y_pos, all_predictions * 100, color=colors, height=0.7)
         
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(class_names)
-        ax.set_xlabel('Percentage (%)', fontsize=12)
-        ax.set_title('Probability Distribution for All Classes', fontsize=14, pad=20)
-        ax.grid(axis='x', alpha=0.3)
+        ax.set_yticklabels([f"{class_emojis[i]} {class_names[i]}" for i in range(len(class_names))])
+        ax.set_xlabel('Confidence (%)', fontsize=12, color='#2c3e50', fontweight='600')
+        ax.set_title('Classification Confidence for All Categories', fontsize=14, color='#2c3e50', fontweight='600', pad=20)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_color('#cbd5e0')
+        ax.spines['bottom'].set_color('#cbd5e0')
+        ax.tick_params(colors='#6c757d')
+        ax.grid(axis='x', alpha=0.2, linestyle='--')
         
-        # Add values on bars
+        # Add percentage labels
         for i, v in enumerate(all_predictions * 100):
-            ax.text(v + 1, i, f'{v:.1f}%', va='center')
+            color = 'white' if i == predicted_class else '#6c757d'
+            ax.text(v + 1, i, f'{v:.1f}%', va='center', fontweight='600', color=color)
         
+        plt.tight_layout()
         st.pyplot(fig)
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 else:
     st.markdown("""
-        <div class='result-box'>
-            <h3>⚠️ Usage Instructions:</h3>
+        <div class="info-box">
+            <h4>⚙️ Setup Required</h4>
             <ol>
-                <li>Make sure to run the code in the Notebook first to create the model</li>
-                <li>Save the model using: <code>model.save("fashion_cnn_model.keras")</code></li>
-                <li>Place the <code>fashion_cnn_model.keras</code> file in the Fashion_Classifier_AI_App folder</li>
-                <li>Run the app using: <code>streamlit run fashion_mnist_app.py</code></li>
+                <li>Train your model and save it as <code>fashion_cnn_model.keras</code></li>
+                <li>Place the model file in the <code>Fashion_Classifier_AI_App</code> folder</li>
+                <li>Refresh this page</li>
             </ol>
         </div>
     """, unsafe_allow_html=True)
 
-# Additional information
+# Tips section
 st.markdown("---")
 st.markdown("""
-    <div class='result-box'>
-        <h4>💡 Tips for Best Results:</h4>
+    <div class="info-box">
+        <h4>💡 Tips for Best Results</h4>
         <ul>
-            <li>Use clear images of clothing items</li>
-            <li>Prefer white or light backgrounds</li>
-            <li>Make sure the clothing item is clearly visible in the image</li>
-            <li>The model is trained on 28x28 pixel grayscale images</li>
+            <li>Use clear, well-lit images of clothing items</li>
+            <li>White or light backgrounds work best</li>
+            <li>Ensure the item fills most of the frame</li>
+            <li>Avoid cluttered backgrounds</li>
         </ul>
     </div>
 """, unsafe_allow_html=True)
 
-# Developer Card
-st.markdown("---")
+# Developer card
 st.markdown("""
     <div class="developer-card">
-        <div class="developer-name">By Marwan Al-Masrrat</div>
-        <div class="developer-title">💻 AI Enthusiast</div>
-        <div class="tech-icons">🐍 Python | 🤖 AI/ML
-            <a href="https://www.linkedin.com/in/marwan-al-masrat" target="_blank" class="linkedin-link">
+        <div class="developer-name">Marwan Al-Masrrat</div>
+        <div class="developer-title">🤖 AI & Machine Learning Enthusiast</div>
+        <div>
+            <a href="https://www.linkedin.com/in/marwan-al-masrat" target="_blank" class="social-link">
                 🔗 LinkedIn
             </a>
         </div>
-        <p style="margin: 15px 0 0 0; font-size: 14px; color: white; opacity: 0.8;">
-            Building intelligent solutions with machine learning
+        <p style="margin-top: 1rem; opacity: 0.8; font-size: 0.9rem;">
+            Building intelligent solutions with deep learning
         </p>
     </div>
 """, unsafe_allow_html=True)
